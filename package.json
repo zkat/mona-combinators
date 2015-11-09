@@ -24,7 +24,7 @@
   "homepage": "https://github.com/zkat/mona-combinators#readme",
   "devDependencies": {
     "@mona/core": "^1.0.0",
-    "@mona/numbers": "^1.0.0",
+    "@mona/numbers": "^1.0.1",
     "@mona/parse": "^1.0.4",
     "@mona/strings": "^1.0.0",
     "babel-cli": "^6.1.2",

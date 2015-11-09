@@ -1,7 +1,6 @@
 /* global describe, it */
 var assert = require('assert')
 var comb = require('..')
-var core = require('@mona/core')
 var parse = require('@mona/parse').parse
 var strings = require('@mona/strings')
 var numbers = require('@mona/numbers')
@@ -23,7 +22,7 @@ describe('between()', function () {
     }, /expected digit/)
     var maybeParser = comb.between(strings.string('('),
                                    strings.string(')'),
-                                   core.maybe(numbers.integer()))
+                                   comb.maybe(numbers.integer()))
     assert.equal(parse(maybeParser, '()'), undefined)
   })
 })
