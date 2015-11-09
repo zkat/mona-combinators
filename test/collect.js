@@ -2,7 +2,7 @@
 var assert = require('assert')
 var comb = require('..')
 var core = require('@mona/core')
-var parse = require('@mona/parse')
+var parse = require('@mona/parse').parse
 
 describe('collect()', function () {
   it('collects zero or more matches by default', function () {

@@ -2,7 +2,7 @@
 var assert = require('assert')
 var comb = require('..')
 var core = require('@mona/core')
-var parse = require('@mona/parse')
+var parse = require('@mona/parse').parse
 
 describe('and()', function () {
   it('returns the last result if all previous ones succeed', function () {

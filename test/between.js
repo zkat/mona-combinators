@@ -2,7 +2,7 @@
 var assert = require('assert')
 var comb = require('..')
 var core = require('@mona/core')
-var parse = require('@mona/parse')
+var parse = require('@mona/parse').parse
 var strings = require('@mona/strings')
 var numbers = require('@mona/numbers')
 

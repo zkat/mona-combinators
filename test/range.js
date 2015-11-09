@@ -1,7 +1,7 @@
 /* global describe, it */
 var assert = require('assert')
 var comb = require('..')
-var parse = require('@mona/parse')
+var parse = require('@mona/parse').parse
 var strs = require('@mona/strings')
 var nums = require('@mona/numbers')
 

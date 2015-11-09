@@ -1,8 +1,7 @@
 import {
   copy,
   invokeParser,
-  mergeErrors,
-  ParserState
+  mergeErrors
 } from '@mona/internals'
 
 import {
@@ -180,7 +179,7 @@ export function sequence (fun) {
         throw new Error('sequence function must return a parser')
       }
       const newState = ret(state)
-      if (!(newState instanceof ParserState)) {
+      if (typeof newState !== 'object') {
         throw new Error('sequence function must return a parser')
       }
       return newState

@@ -4,7 +4,7 @@ var comb = require('..')
 var core = require('@mona/core')
 var nums = require('@mona/numbers')
 var strs = require('@mona/strings')
-var parse = require('@mona/parse')
+var parse = require('@mona/parse').parse
 
 describe('join()', function () {
   it('returns the results as an array if all parsers succeed', function () {
