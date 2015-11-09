@@ -3,7 +3,7 @@ import {
   invokeParser,
   mergeErrors,
   ParserState
-} from './internals'
+} from '@mona/internals'
 
 import {
   bind,
@@ -11,7 +11,7 @@ import {
   label,
   token,
   value
-} from './core'
+} from '@mona/core'
 
 /**
  * Parser combinators for higher-order interaction between parsers.

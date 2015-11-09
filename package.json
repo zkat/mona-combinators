@@ -3,6 +3,10 @@
   "version": "1.0.0",
   "description": "parser combinators for mona",
   "main": "lib/index.js",
+  "files": [
+    "README.md",
+    "lib/"
+  ],
   "scripts": {
     "build": "babel --presets es2015 src --out-dir lib",
     "prepublish": "npm run build",
@@ -20,16 +24,14 @@
   "homepage": "https://github.com/zkat/mona-combinators#readme",
   "devDependencies": {
     "@mona/core": "^1.0.0",
-    "@mona/numbers": "^1.0.0",
     "@mona/parse": "^1.0.0",
-    "@mona/strings": "^1.0.0",
     "babel-cli": "^6.1.2",
     "babel-preset-es2015": "^6.1.2",
     "mocha": "^2.3.3",
     "standard": "^5.3.1"
   },
   "dependencies": {
-    "@mona/core": "^1.0.0",
-    "@mona/internals": "^1.0.0"
+    "@mona/core": "^1.0.2",
+    "@mona/internals": "^1.0.2"
   }
 }
