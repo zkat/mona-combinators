@@ -1,6 +1,6 @@
 {
   "name": "@mona/combinators",
-  "version": "0.0.0",
+  "version": "1.0.0",
   "description": "parser combinators for mona",
   "main": "lib/index.js",
   "scripts": {
