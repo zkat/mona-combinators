@@ -31,11 +31,11 @@ import {
  * @example
  * parse(and(token(), token()), 'ab') // => 'b'
  */
-export function and (firstParser) {
+export function and (firstParser, ...moreParsers) {
   if (!firstParser) {
     throw new Error('and() requires at least one parser')
   }
-  return andHelper(arguments)
+  return andHelper([firstParser, ...moreParsers])
 }
 
 function andHelper (parsers) {
