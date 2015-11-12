@@ -1,3 +1,5 @@
+import 'babel-polyfill' // For Symbol
+
 import {
   copy,
   invokeParser,
