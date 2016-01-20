@@ -1,11 +1,3 @@
-import 'babel-polyfill' // For Symbol
-
-import {
-  copy,
-  invokeParser,
-  mergeErrors
-} from '@mona/internals'
-
 import {
   bind,
   fail,
@@ -35,19 +27,12 @@ export function and (firstParser, ...moreParsers) {
   if (!firstParser) {
     throw new Error('and() requires at least one parser')
   }
-  return andHelper([firstParser, ...moreParsers])
-}
-
-function andHelper (parsers) {
   return parserState => {
-    var res = parserState
-    for (let parser of parsers) {
-      res = invokeParser(parser, res)
-      if (res.failed) {
-        break
-      }
-    }
-    return res
+    return parserState.parse(firstParser).then(res => {
+      return (res.failed || !moreParsers.length)
+      ? res
+      : res.parse(and(...moreParsers))
+    })
   }
 }
 
@@ -55,7 +40,7 @@ function andHelper (parsers) {
  * Returns a parser that succeeds if one of the parsers given to it
  * suceeds. Uses the value of the first successful parser.
  *
- * @param {...Parser} parsers - One or more parsers to execute.
+ * @param {...Parser} parsers - Zero or more parsers to execute.
  * @param {String} [label] - Label to replace the full message with.
  * @memberof module:mona/combinators
  * @instance
@@ -66,28 +51,25 @@ function andHelper (parsers) {
 export function or (...parsers) {
   const labelMsg =
     typeof parsers[parsers.length - 1] === 'string' && parsers.pop()
-  const parser = orHelper(parsers)
-  return labelMsg
-    ? label(parser, labelMsg)
-    : parser
-}
-
-function orHelper (parsers) {
-  return parserState => {
-    let errors = []
-    let res
-    for (let parser of parsers) {
-      res = invokeParser(parser, parserState)
-      if (res.failed) {
-        errors.push(res.error)
+  const p = parserState => {
+    const parser = parsers.shift()
+    return !parser ? parserState : parserState.parse(parser).then(s1 => {
+      if (!s1.failed || !parsers.length) {
+        return s1
       } else {
-        return res
+        return parserState.parse(or(...parsers)).then(s2 => {
+          if (!s2.failed) {
+            return s2
+          } else {
+            let nextState = s2.copy()
+            nextState.error = s1.error.merge(s2.error)
+            return nextState
+          }
+        })
       }
-    }
-    var finalState = copy(res)
-    finalState.error = errors.reduce(mergeErrors)
-    return finalState
+    })
   }
+  return labelMsg ? label(p, labelMsg) : p
 }
 
 /**
@@ -116,10 +98,11 @@ export function maybe (parser) {
  * parse(and(not(string('a')), token()), 'b') // => 'b'
  */
 export function not (parser) {
-  return parserState =>
-    invokeParser(parser, parserState).failed
-    ? invokeParser(value(true), parserState)
-    : invokeParser(fail('expected parser to fail', 'expectation'), parserState)
+  return parserState => parserState.parse(parser).then(res => {
+    return parserState.parse(res.failed
+      ? value(true)
+      : fail('expected parser to fail', 'expectation'))
+  })
 }
 
 /**
@@ -150,48 +133,31 @@ export function unless (parser, ...moreParsers) {
  * @example
  * parse(join(alpha(), integer()), 'a1') // => ['a', 1]
  */
-export function join (...parsers) {
-  if (!parsers.length) {
-    throw new Error('join() requires at least one parser')
-  }
-  return joinHelper(parsers)
-}
-
-function joinHelper (parsers) {
+export function join (parser, ...moreParsers) {
   return parserState => {
-    let s = parserState
-    let res = []
-    for (let parser of parsers) {
-      s = invokeParser(parser, s)
-      if (s.failed) {
-        return s
+    return !parser
+    ? parserState.parse(value([]))
+    : parserState.parse(parser).then(s1 => {
+      if (s1.failed) {
+        return s1
+      } else if (!moreParsers) {
+        let nextState = s1.copy()
+        nextState.value = [s1.value]
+        return nextState
       } else {
-        res.push(s.value)
+        return s1.parse(join(...moreParsers)).then(s2 => {
+          if (s2.failed) {
+            return s2
+          } else {
+            let nextState = s2.copy()
+            nextState.value = [s1.value].concat(s2.value)
+            return nextState
+          }
+        })
       }
-    }
-    return value(res)(s)
+    })
   }
 }
-
-/**
- * Called by `sequence` to handle sequential syntax for parsing. Called with an
- * `s()` function that must be called each time a parser should be applied. The
- * `s()` function will return the unwrapped value returned by the parser. If any
- * of the `s()` calls fail, this callback will exit with an appropriate failure
- * message, and none of the subsequent code will execute.
- *
- * Note that this callback may be called multiple times during parsing, and many
- * of those calls might partially fail, so side-effects should be done with
- * care.
- *
- * A `sequence` callback *must* return a `Parser`.
- *
- * @callback {Function} SequenceFn
- * @param {Function} s - Sequencing function. Must be wrapped around a parser.
- * @returns {Parser} parser - The final parser to apply before resolving
- *                                 `sequence`.
- * @memberof module:mona/combinators
- */
 
 /**
  * Returns a parser that returns the result of its first parser if it succeeds,
@@ -232,14 +198,12 @@ export function split (parser, separator, opts = {}) {
     return or(split(parser, separator, {min: 1, max: opts.max}),
               value([]))
   } else {
-    let newOpts = copy(opts)
+    let newOpts = Object.create(opts)
     newOpts.min = opts.min && opts.min - 1
     newOpts.max = opts.max && opts.max - 1
-    return sequence(s => {
-      const x = s(parser)
-      const xs = s(collect(and(separator, parser), newOpts))
-      return value([x].concat(xs))
-    })
+    return bind(parser, x =>
+      bind(collect(and(separator, parser), newOpts), xs =>
+      value([x].concat(xs))))
   }
 }
 
@@ -261,31 +225,23 @@ export function split (parser, separator, opts = {}) {
  * parse(splitEnd(token(), space()), 'a b c ') // => ['a', 'b', 'c']
  */
 export function splitEnd (parser, separator, opts = {}) {
-  if (typeof opts.enforceEnd === 'undefined'
-      ? true
-      : opts.enforceEnd) {
+  if ((opts.enforceEnd == null) || opts.enforceEnd) {
     return collect(followedBy(parser, separator), opts)
   } else {
     // TODO - This is bloody terrible and should die a horrible, painful death,
     //        but at least the tests seem to pass. :\
-    return sequence(s => {
-      const min = opts.min || 0
-      const max = opts.max || Infinity
-      const results = s(splitEnd(parser, separator, {
-        min: opts.min && min - 1,
-        max: opts.max && max - 1
-      }))
-      let last
-      if (opts.min > results.length || opts.max) {
-        last = s(followedBy(parser, maybe(separator)))
-        return value(results.concat([last]))
+    const min = opts.min || 0
+    const max = opts.max || Infinity
+    return bind(splitEnd(parser, separator, {
+      min: opts.min && min - 1,
+      max: opts.max && max - 1
+    }), results => {
+      if (opts.min > results.length || opts.max > 0) {
+        return bind(followedBy(parser, maybe(separator)),
+        last => value(results.concat([last])))
       } else {
-        last = s(maybe(parser))
-        if (last) {
-          return value(results.concat([last]))
-        } else {
-          return value(results)
-        }
+        return bind(maybe(parser),
+        last => value(last ? results.concat([last]) : results))
       }
     })
   }
@@ -312,19 +268,34 @@ export function collect (parser, opts = {}) {
     throw new Error('min must be less than or equal to max')
   }
   return parserState => {
-    var prev = parserState
-    var s = invokeParser(parser, parserState)
-    var res = []
-    for (var i = 0;
-         i < max && !s.failed;
-         prev = s, i++, s = invokeParser(parser, s)) {
-      res.push(s.value)
-    }
-    if (min && (res.length < min)) {
-      return s
-    } else {
-      return value(res)(prev)
-    }
+    return parserState.parse(parser).then(s => {
+      if (s.failed && !min) {
+        let nextState = parserState.copy()
+        nextState.value = []
+        return nextState
+      } else if (s.failed && min) {
+        return s
+      } else if (!s.failed && max <= 1) {
+        let nextState = s.copy()
+        nextState.value = [s.value]
+        return nextState
+      } else {
+        let newOpts = Object.create(opts)
+        newOpts.max > 0 && newOpts.max--
+        newOpts.min > 0 && newOpts.min--
+        return s.parse(collect(parser, newOpts)).then(s2 => {
+          if (s2.failed && min) {
+            return s2
+          } else {
+            let nextState = s2.failed ? s.copy() : s2.copy()
+            nextState.value = s2.failed
+            ? [s.value]
+            : [s.value].concat(s2.value)
+            return nextState
+          }
+        })
+      }
+    })
   }
 }
 
