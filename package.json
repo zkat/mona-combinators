@@ -25,17 +25,12 @@
   "homepage": "https://github.com/zkat/mona-combinators#readme",
   "devDependencies": {
     "@mona/core": "^1.0.0",
-    "@mona/numbers": "^1.0.1",
-    "@mona/parse": "^1.0.4",
-    "@mona/strings": "^1.0.0",
     "babel-cli": "^6.1.2",
     "babel-preset-es2015": "^6.1.2",
     "mocha": "^2.3.3",
     "standard": "^5.3.1"
   },
   "dependencies": {
-    "@mona/core": "^1.0.3",
-    "@mona/internals": "^1.0.4",
-    "babel-polyfill": "^6.1.4"
+    "@mona/core": "^2.0.0"
   }
 }

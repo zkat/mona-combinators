@@ -1,14 +1,7 @@
-import 'babel-polyfill' // For Symbol
-
-import {
-  copy,
-  invokeParser,
-  mergeErrors
-} from '@mona/internals'
-
 import {
   bind,
   fail,
+  invokeParser,
   label,
   token,
   value
@@ -35,19 +28,12 @@ export function and (firstParser, ...moreParsers) {
   if (!firstParser) {
     throw new Error('and() requires at least one parser')
   }
-  return andHelper([firstParser, ...moreParsers])
-}
-
-function andHelper (parsers) {
   return parserState => {
-    var res = parserState
-    for (let parser of parsers) {
-      res = invokeParser(parser, res)
-      if (res.failed) {
-        break
-      }
-    }
-    return res
+    return invokeParser(firstParser, parserState).then(res => {
+      return (res.failed || !moreParsers.length)
+      ? res
+      : and(...moreParsers)(res)
+    })
   }
 }
 
