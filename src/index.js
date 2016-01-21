@@ -52,7 +52,24 @@ export function and (firstParser, ...moreParsers) {
 export function or (...parsers) {
   const labelMsg =
     typeof parsers[parsers.length - 1] === 'string' && parsers.pop()
-  const parser = orHelper(parsers)
+  const parser = !parsers.length ? x => x : parserState => {
+    return invokeParser(parsers.shift(), parserState).then(res => {
+      if (res.failed) {
+        let newState = parserState.copy()
+        newState.error = parserState.error
+        ? parserState.error.merge(res.error)
+        : res.error
+        if (parsers.length) {
+          return or(...parsers)(newState)
+        } else {
+          newState.failed = true
+          return newState
+        }
+      } else {
+        return res
+      }
+    })
+  }
   return labelMsg
     ? label(parser, labelMsg)
     : parser
