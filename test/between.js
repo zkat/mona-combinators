@@ -1,28 +1,32 @@
 /* global describe, it */
-var assert = require('assert')
+var assert = require('chai').assert
 var comb = require('..')
-var parse = require('@mona/parse').parse
-var strings = require('@mona/strings')
-var numbers = require('@mona/numbers')
+var core = require('@mona/core')
+var parse = core.parse
+var reject = require('bluebird').reject
+var tok = function (x) {
+  return core.label(core.is(function (v) {
+    return x === v
+  }), '{' + x + '}')
+}
 
 describe('between()', function () {
   it('returns a value in between two other parsers', function () {
-    var parser = comb.between(strings.string('('),
-                              strings.string(')'),
-                              numbers.integer())
-    assert.equal(parse(parser, '(123)'), 123)
-    assert.throws(function () {
-      parse(parser, '123)')
-    }, /expected string matching \{\(\}/)
-    assert.throws(function () {
-      parse(parser, '(123')
-    }, /expected string matching \{\)\}/)
-    assert.throws(function () {
-      parse(parser, '()')
-    }, /expected digit/)
-    var maybeParser = comb.between(strings.string('('),
-                                   strings.string(')'),
-                                   comb.maybe(numbers.integer()))
-    assert.equal(parse(maybeParser, '()'), undefined)
+    var parser = comb.between(tok('('), tok(')'), tok('a'))
+    return parse(parser, '(a)').then(function (res) {
+      assert.equal(res, 'a')
+    }).then(function () {
+      return parse(parser, 'a)')
+    }).then(reject, function (e) {
+      assert.match(e.message, /expected \{\(\}/)
+    }).then(function () {
+      return parse(parser, '(a')
+    }).then(reject, function (e) {
+      assert.match(e.message, /expected \{\)\}/)
+    }).then(function () {
+      return parse(parser, '()')
+    }).then(reject, function (e) {
+      assert.match(e.message, /expected \{a\}/)
+    })
   })
 })

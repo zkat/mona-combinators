@@ -1,16 +1,19 @@
 /* global describe, it */
-var assert = require('assert')
+var assert = require('chai').assert
 var comb = require('..')
 var core = require('@mona/core')
-var parse = require('@mona/parse').parse
+var parse = core.parse
+var reject = require('bluebird').reject
 
 describe('not()', function () {
   it('returns true if the given parser fails', function () {
-    assert.equal(parse(comb.not(core.token()), ''), true)
+    return parse(comb.not(core.token()), '').then(function (res) {
+      assert.equal(res, true)
+    })
   })
   it('fails if the given parser succeeds', function () {
-    assert.throws(function () {
-      parse(comb.not(core.value('foo')), '')
-    }, /expected parser to fail/)
+    return parse(comb.not(core.value('foo')), '').then(reject, function (e) {
+      assert.match(e.message, /expected parser to fail/)
+    })
   })
 })

@@ -1,18 +1,23 @@
 /* global describe, it */
-var assert = require('assert')
+var assert = require('chai').assert
 var comb = require('..')
 var core = require('@mona/core')
-var nums = require('@mona/numbers')
-var strs = require('@mona/strings')
-var parse = require('@mona/parse').parse
+var parse = core.parse
 
 describe('join()', function () {
   it('returns the results as an array if all parsers succeed', function () {
-    assert.deepEqual(parse(comb.join(strs.alpha(), nums.integer()), 'a1'),
-                     ['a', 1])
-    assert.deepEqual(parse(comb.join(core.token()), 'a'), ['a'])
-    assert.throws(function () {
-      parse(comb.join(), 'ab')
-    }, /requires at least one parser/)
+    var parser = comb.join(core.value('foo'), core.value('bar'))
+    return parse(parser, '').then(function (res) {
+      assert.deepEqual(res, ['foo', 'bar'])
+    }).then(function () {
+      return parse(comb.join(core.value('foo')), '')
+    }).then(function (res) {
+      assert.deepEqual(res, ['foo'])
+    })
+  })
+  it('returns an empty array if no parsers are provided', function () {
+    return parse(comb.join(), '').then(function (res) {
+      assert.deepEqual(res, [])
+    })
   })
 })
