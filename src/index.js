@@ -140,62 +140,6 @@ export function unless (parser, ...moreParsers) {
 }
 
 /**
- * Returns a parser that will execute `fun` while handling the parserState
- * internally, allowing the body of `fun` to be written sequentially. The
- * purpose of this parser is to simulate `do` notation and prevent the need for
- * heavily-nested `bind` calls.
- *
- * The `fun` callback will receive a function `s` which should be called with
- * each parser that will be executed, which will update the internal
- * parserState. The return value of the callback must be a parser.
- *
- * If any of the parsers fail, sequence will exit immediately, and the entire
- * sequence will fail with that parser's reason.
- *
- * @param {SequenceFn} fun - A sequence callback function to execute.
- * @memberof module:mona/combinators
- * @instance
- *
- * @example
- * mona.sequence(function(s) {
- *  var x = s(mona.token())
- *  var y = s(mona.string('b'))
- *  return mona.value(x+y)
- * })
- */
-export function sequence (fun) {
-  return parserState => {
-    let state = parserState
-    const failwhale = {}
-    function s (parser) {
-      state = invokeParser(parser, state)
-      if (state.failed) {
-        throw failwhale
-      } else {
-        return state.value
-      }
-    }
-    try {
-      const ret = fun(s)
-      if (typeof ret !== 'function') {
-        throw new Error('sequence function must return a parser')
-      }
-      const newState = ret(state)
-      if (typeof newState !== 'object') {
-        throw new Error('sequence function must return a parser')
-      }
-      return newState
-    } catch (x) {
-      if (x === failwhale) {
-        return state
-      } else {
-        throw x
-      }
-    }
-  }
-}
-
-/**
  * Returns a parser that succeeds if all the parsers given to it succeed. The
  * returned parser uses the values of the all joined parsers.
  *
